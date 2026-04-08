@@ -49,8 +49,8 @@ def build_server():
         name="fenix-rag",
         version="1.0.0",
         description=(
-            "Asistente legal colombiano — normativa laboral y SST. "
-            "Consulta decretos, resoluciones y contratos con retrieval híbrido."
+            "Sistema Profesional de Retrieval-Augmented Generation. "
+            "Consulta documentos con retrieval híbrido y auto-reflexión."
         ),
     )
 
