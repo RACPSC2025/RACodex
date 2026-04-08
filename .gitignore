@@ -11,7 +11,8 @@ wheels/
 .env
 
 # dir
-upload
+storage/uploads
+uploads
 code
 agent_skills
 docs
