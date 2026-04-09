@@ -7,7 +7,8 @@
       "Bash(@for *)",
       "Bash(@if *)",
       "Bash(r *)",
-      "Bash(mkdir *)"
+      "Bash(mkdir *)",
+      "Bash(move *)"
     ]
   },
   "$version": 3

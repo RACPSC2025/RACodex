@@ -1,0 +1,38 @@
+{
+  "version": "1.0.0",
+  "default_profile": "general-dev",
+  "profiles": {
+    "general-dev": {
+      "name": "General Developer",
+      "description": "Perfil base de desarrollo: principios SOLID, testing, clean code, system design básico. Se activa cuando el usuario no selecciona un perfil específico.",
+      "path": "general-dev/",
+      "index_file": "INDEX.md",
+      "priority": 100,
+      "tags": ["general", "fundamentals", "best-practices"]
+    },
+    "ai-rag-engineer": {
+      "name": "AI & RAG Engineer",
+      "description": "Arquitectura RAG profesional, LangGraph, patrones agentic, retrieval avanzado, evaluación RAGAS. Para construir sistemas de IA con conocimiento personalizado.",
+      "path": "ai-rag-engineer/",
+      "index_file": "INDEX.md",
+      "priority": 90,
+      "tags": ["ai", "rag", "langgraph", "agents", "embeddings"]
+    },
+    "backend-python": {
+      "name": "Backend Python",
+      "description": "FastAPI, SQLAlchemy, async/await, Celery, arquitectura hexagonal, patrones de diseño backend.",
+      "path": "backend-python/",
+      "index_file": "INDEX.md",
+      "priority": 80,
+      "tags": ["backend", "python", "fastapi", "async"]
+    }
+  },
+  "fallback": {
+    "profile": "general-dev",
+    "behavior": "use_default_pack"
+  },
+  "conflict_resolution": {
+    "strategy": "active_profile_wins",
+    "description": "Si dos packs tienen la misma skill, gana el perfil activo del usuario."
+  }
+}
