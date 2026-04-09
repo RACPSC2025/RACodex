@@ -71,10 +71,10 @@ def clear_settings_cache() -> Generator[None, None, None]:
 def clear_provider_cache() -> Generator[None, None, None]:
     """Limpia el caché de providers antes de cada test."""
     try:
-        from src.config.providers import reset_provider_cache
-        reset_provider_cache()
+        from src.config.providers import clear_provider_cache
+        clear_provider_cache()
         yield
-        reset_provider_cache()
+        clear_provider_cache()
     except ImportError:
         yield
 
