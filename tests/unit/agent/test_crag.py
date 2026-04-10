@@ -20,7 +20,7 @@ from src.agent.skills.crag import (
 # ─── grade_documents ────────────────────────────────────────────────────────
 
 class TestGradeDocuments:
-    """Tests de la evaluación de calidad de documentos."""
+    """Tests de la evaluacion de calidad de documentos."""
 
     def test_empty_documents_returns_incorrect(self):
         grade = grade_documents("test query", [])
@@ -69,7 +69,7 @@ class TestGradeDocuments:
 
         grade = grade_documents("test query", docs)
 
-        # Fallback debería ser ambiguous
+        # Fallback debe ser ambiguous
         assert grade.quality == "ambiguous"
         assert grade.score == 0.5
 

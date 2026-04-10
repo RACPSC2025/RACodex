@@ -28,6 +28,8 @@ from __future__ import annotations
 
 from pydantic import BaseModel, Field
 
+from langchain_core.prompts import ChatPromptTemplate
+
 from src.config.logging import get_logger
 from src.config.providers import get_llm
 
@@ -96,12 +98,16 @@ def grade_documents(
     )
 
     llm = get_llm(temperature=0)
-    chain = GRADER_SYSTEM | llm.with_structured_output(DocumentGrade)
+    grader_prompt = ChatPromptTemplate.from_messages([
+        ("system", GRADER_SYSTEM),
+        ("human", "{input}"),
+    ])
+    chain = grader_prompt | llm.with_structured_output(DocumentGrade)
 
     try:
-        grade: DocumentGrade = chain.invoke(
-            f"Consulta: {query}\n\nDocumentos recuperados:\n{docs_summary}"
-        )
+        grade: DocumentGrade = chain.invoke({
+            "input": f"Consulta: {query}\n\nDocumentos recuperados:\n{docs_summary}"
+        })
     except Exception as exc:
         log.warning("crag_grading_failed", error=str(exc))
         # Fallback: ambiguous para reintentar
