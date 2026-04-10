@@ -64,6 +64,12 @@ from src.agent.tools.ingest_tools import (
     ingest_word,
     list_indexed_documents,
 )
+from src.agent.tools.memory_tools import (
+    clear_context,
+    list_context_keys,
+    retrieve_context,
+    save_context,
+)
 from src.agent.tools.search_tools import (
     article_lookup,
     hybrid_search,
@@ -84,6 +90,10 @@ ALL_TOOLS = [
     semantic_search,
     hybrid_search,
     article_lookup,
+    save_context,
+    retrieve_context,
+    list_context_keys,
+    clear_context,
 ]
 
 

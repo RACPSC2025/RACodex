@@ -106,9 +106,14 @@ class AgentState(TypedDict):
     iteration_count: int                 # número de intentos de generación
     max_iterations: int                  # límite de iteraciones (default: 2)
 
+    # ── Memoria de sesión (persistida via checkpointer) ──────────────────────
+    session_memory: dict[str, str]       # clave → valor para contexto entre iteraciones
+
     # ── Metadata del grafo ────────────────────────────────────────────────────
     error: str | None                    # mensaje de error si algo falla
     route: str                           # próximo nodo ("END", "retrieval", etc.)
+    grade_score: float                   # CRAG grading score (0.0-1.0)
+    generation_mode: str                 # "direct" | "rethinking" | "rethinking_low_confidence" | "no_docs"
 
     # ── Managed values (LangGraph internal) ──────────────────────────────────
     remaining_steps: RemainingSteps      # pasos restantes antes del límite de recursión
@@ -152,6 +157,9 @@ def initial_state(
         "reflection": None,
         "iteration_count": 0,
         "max_iterations": max_iterations,
+        "session_memory": {},
         "error": None,
         "route": "",
+        "grade_score": 0.0,
+        "generation_mode": "",
     }

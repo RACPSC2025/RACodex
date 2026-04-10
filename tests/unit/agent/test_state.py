@@ -44,6 +44,9 @@ class TestAgentState:
         assert state["max_iterations"] == 2
         assert state["error"] is None
         assert state["route"] == ""
+        assert state["session_memory"] == {}
+        assert state["grade_score"] == 0.0
+        assert state["generation_mode"] == ""
         assert state["retrieval_strategy"] == ""
 
     def test_initial_state_with_uploaded_files(self) -> None:
