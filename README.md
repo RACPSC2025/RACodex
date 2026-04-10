@@ -116,7 +116,7 @@ Resultado: "Según tu documentación de FastAPI (cap. 8, p. 142),
 ### 1. Clonar y configurar entorno
 
 ```bash
-git clone https://github.com/tu-org/racodex.git
+git clone https://github.com/RACPSC2025/RACodex.git
 cd racodex
 
 python -m venv .venv && source .venv/bin/activate
