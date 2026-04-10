@@ -89,7 +89,15 @@ def ingestion_node(state: AgentState) -> dict:
 
 
 def retrieval_node(state: AgentState) -> dict:
-    """Ejecuta EnsembleRetriever con context enrichment."""
+    """
+    Ejecuta EnsembleRetriever con Multi-Query Fusion + Context Enrichment.
+
+    1. QueryTransformer genera variantes: [original, rewritten, step-back]
+    2. Retrieval con cada variante del query
+    3. Deduplicación por source::chunk_index
+    4. Context Enrichment aplicado por el ensemble
+    """
+    from src.agent.skills.query_transformer import QueryTransformer  # noqa: PLC0415
     from src.retrieval.base import RetrievalQuery  # noqa: PLC0415
     from src.retrieval.ensemble import get_ensemble_retriever  # noqa: PLC0415
     from src.retrieval.vector_store import get_vector_store  # noqa: PLC0415
@@ -109,19 +117,43 @@ def retrieval_node(state: AgentState) -> dict:
         context_window_size=2,
     )
 
-    query = RetrievalQuery(text=query_text)
-    result = ensemble.retrieve(query)
+    # Paso 1: QueryTransformer genera variantes
+    transformer = QueryTransformer()
+    variants = transformer.transform_all(query_text)
+
+    log.debug(
+        "retrieval_query_variants",
+        original=query_text[:60],
+        variants=len(variants),
+        queries=[v[:60] for v in variants],
+    )
+
+    # Paso 2: Retrieval con cada variante + deduplicación
+    seen_ids: set[str] = set()
+    all_docs = []
+    total_before_dedup = 0
+
+    for variant in variants:
+        result = ensemble.retrieve(RetrievalQuery(text=variant))
+        total_before_dedup += len(result.documents)
+        for doc in result.documents:
+            doc_id = f"{doc.metadata.get('source', '')}::{doc.metadata.get('chunk_index', '')}"
+            if doc_id not in seen_ids:
+                seen_ids.add(doc_id)
+                all_docs.append(doc)
 
     log.info(
         "retrieval_complete",
-        query=query_text[:60],
-        docs=len(result.documents),
-        strategy=result.strategy if hasattr(result, "strategy") else "auto",
+        original_query=query_text[:60],
+        variants=len(variants),
+        total_docs_before_dedup=total_before_dedup,
+        total_docs_after_dedup=len(all_docs),
+        strategy="multi_query_fusion",
     )
 
     return {
-        "retrieval_results": result.documents,
-        "retrieval_strategy": result.strategy if hasattr(result, "strategy") else "auto",
+        "retrieval_results": all_docs,
+        "retrieval_strategy": "multi_query_fusion",
     }
 
 
