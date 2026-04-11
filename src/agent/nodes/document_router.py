@@ -4,6 +4,7 @@ Document router node — clasifica archivos subidos y decide ruta de ingestión.
 
 from __future__ import annotations
 
+from src.agent.metrics import node_timer
 from src.agent.state import AgentState
 from src.config.logging import get_logger
 
@@ -19,24 +20,24 @@ def document_router_node(state: AgentState) -> dict:
     """
     from src.agent.skills.document_classifier import DocumentClassifierSkill  # noqa: PLC0415
 
-    uploaded = state.get("uploaded_files", [])
-    if not uploaded:
-        return {"route": "retrieval", "ingestion_plans": []}
+    with node_timer(state, "document_router") as timer:
+        uploaded = state.get("uploaded_files", [])
+        if not uploaded:
+            return {"route": "retrieval", "ingestion_plans": [], **timer.to_state()}
 
-    classifier = DocumentClassifierSkill()
-    plans = []
+        classifier = DocumentClassifierSkill()
+        plans = []
 
-    for fpath in uploaded:
-        plan = classifier.classify(fpath)
-        plans.append(plan)
+        for fpath in uploaded:
+            plan = classifier.classify(fpath)
+            plans.append(plan)
 
-    log.info(
-        "document_router_complete",
-        files=len(uploaded),
-        plans=[p.get("loader_type", "?") for p in plans],
-    )
+        timer.update(docs_count=len(plans), extra={
+            "loader_types": [p.get("loader_type", "?") for p in plans],
+        })
 
-    return {
-        "route": "ingestion",
-        "ingestion_plans": plans,
-    }
+        return {
+            "route": "ingestion",
+            "ingestion_plans": plans,
+            **timer.to_state(),
+        }

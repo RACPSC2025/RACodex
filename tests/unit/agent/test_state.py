@@ -47,6 +47,7 @@ class TestAgentState:
         assert state["session_memory"] == {}
         assert state["grade_score"] == 0.0
         assert state["generation_mode"] == ""
+        assert state["pipeline_metrics"] == {}
         assert state["retrieval_strategy"] == ""
 
     def test_initial_state_with_uploaded_files(self) -> None:

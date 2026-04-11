@@ -64,16 +64,14 @@ def retrieval_node(state: AgentState) -> dict:
                 seen_ids.add(doc_id)
                 all_docs.append(doc)
 
-    log.info(
-        "retrieval_complete",
-        original_query=query_text[:60],
-        variants=len(variants),
-        total_docs_before_dedup=total_before_dedup,
-        total_docs_after_dedup=len(all_docs),
-        strategy="multi_query_fusion",
-    )
+    timer.update(docs_count=len(all_docs), extra={
+        "variants": len(variants),
+        "total_before_dedup": total_before_dedup,
+        "dedup_removed": total_before_dedup - len(all_docs),
+    })
 
     return {
         "retrieval_results": all_docs,
         "retrieval_strategy": "multi_query_fusion",
+        **timer.to_state(),
     }

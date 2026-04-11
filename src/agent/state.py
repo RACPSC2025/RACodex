@@ -115,6 +115,9 @@ class AgentState(TypedDict):
     grade_score: float                   # CRAG grading score (0.0-1.0)
     generation_mode: str                 # "direct" | "rethinking" | "rethinking_low_confidence" | "no_docs"
 
+    # ── Métricas del pipeline (observabilidad) ───────────────────────────────
+    pipeline_metrics: dict[str, dict]    # {node_name: {start_ms, end_ms, duration_ms, docs_count, extra}}
+
     # ── Managed values (LangGraph internal) ──────────────────────────────────
     remaining_steps: RemainingSteps      # pasos restantes antes del límite de recursión
 
@@ -162,4 +165,5 @@ def initial_state(
         "route": "",
         "grade_score": 0.0,
         "generation_mode": "",
+        "pipeline_metrics": {},
     }
