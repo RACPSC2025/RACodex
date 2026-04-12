@@ -1,27 +1,24 @@
 """
 Document Augmentation — Genera preguntas por chunk durante la ingestión.
 
-Cada chunk del documento se augmenta con 3-5 preguntas generadas por LLM
-que ese chunk podría responder. Estas preguntas se indexan junto al chunk
-original, mejorando el match entre la query del usuario y el contenido.
-
-Beneficio: la query del usuario ("¿qué pasa si no cumplo?") tiene más
-probabilidad de coincidir con una pregunta pregenerada
-("¿Cuáles son las consecuencias del incumplimiento?") que con el texto
-legal crudo del chunk.
+Implementa procesamiento por LOTES (batching) nativo.
+Cada bloque de N chunks se agrupa en una única inferencia al LLM, reduciendo
+drásticamente la latencia y los costos de API.
 
 Uso en el pipeline de ingestión:
     from src.ingestion.processors.document_augmenter import augment_documents
 
     chunks = chunker.chunk(docs)
-    augmented = augment_documents(chunks, llm=llm, questions_per_chunk=3)
+    augmented = augment_documents(chunks, llm=llm, questions_per_chunk=3, batch_size=5)
     vector_store.add_documents(augmented)
 """
 
 from __future__ import annotations
 
 import asyncio
+import json
 from dataclasses import dataclass, field
+import traceback
 
 from langchain_core.documents import Document
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -34,82 +31,79 @@ log = get_logger(__name__)
 
 # ─── Prompt ──────────────────────────────────────────────────────────────────
 
-QUESTION_GENERATION_PROMPT = SystemMessage(
+BATCH_QUESTION_GENERATION_PROMPT = SystemMessage(
     content=(
-        "Eres un experto generando preguntas que los usuarios podrían hacer "
-        "sobre un fragmento de documento.\n\n"
-        "Tu tarea:\n"
-        "- Genera preguntas realistas que un usuario haría basándose en este contenido\n"
-        "- Usa lenguaje natural, no terminología técnica excesiva\n"
-        "- Cada pregunta debe ser respondible SOLO con el fragmento proporcionado\n"
-        "- Retorna UNA pregunta por línea, sin numeración ni prefijos"
+        "Eres un experto analizando fragmentos de documentos para generar preguntas "
+        "reales que los usuarios buscarían en Google o en un sistema RAG para "
+        "encontrar dicha información.\n\n"
+        "INSTRUCCIONES CRÍTICAS:\n"
+        "1. Recibirás un lote de fragmentos numerados (ej. [CHUNK 0], [CHUNK 1]).\n"
+        "2. Genera el número exacto de preguntas solicitado para CADA fragmento.\n"
+        "3. Lenguaje natural, sin jerga excesiva ni prefijos.\n"
+        "4. Tienes PROHIBIDO generar cualquier texto que no sea un JSON válido.\n\n"
+        "FORMATO DE RESPUESTA (Solo JSON, sin bloques de código markdown):\n"
+        "{\n"
+        '  "results": [\n'
+        '    {"chunk_id": 0, "questions": ["pregunta 1?", "pregunta 2?"]},\n'
+        '    {"chunk_id": 1, "questions": ["pregunta 1?", "pregunta 2?"]}\n'
+        "  ]\n"
+        "}"
     )
 )
 
 
-# ─── Función principal ───────────────────────────────────────────────────────
+# ─── Función principal (Síncrona) ────────────────────────────────────────────
 
 def augment_documents(
     chunks: list[Document],
     llm=None,
     questions_per_chunk: int = 3,
+    batch_size: int = 5,
 ) -> list[Document]:
     """
-    Augmenta cada chunk con preguntas generadas por LLM.
-
-    Para cada chunk original:
-      1. Genera N preguntas que ese chunk puede responder
-      2. Crea N documentos "hijo" con la pregunta como page_content
-         y metadata apuntando al chunk padre
-
-    Args:
-        chunks: Lista de documentos chunkeados.
-        llm: LLM instance. None = usa el default.
-        questions_per_chunk: Número de preguntas por chunk (3-5 recomendado).
-
-    Returns:
-        Lista original de chunks + documentos de preguntas augmentadas.
-        Los chunks originales se mantienen intactos.
+    Augmenta cada chunk con preguntas usando Batching Síncrono.
     """
-    llm = llm or get_llm(temperature=0.5)
-    augmented: list[Document] = list(chunks)  # Copia de los originales
+    llm = llm or get_llm(temperature=0.3)
+    augmented: list[Document] = list(chunks)  # Copia intocada de los originales
 
-    for i, chunk in enumerate(chunks):
-        try:
-            questions = _generate_questions(
-                chunk, llm, questions_per_chunk
-            )
-            for q_text in questions:
-                augmented.append(Document(
-                    page_content=q_text,
-                    metadata={
-                        **chunk.metadata,
-                        "augmentation_type": "question",
-                        "parent_chunk_index": chunk.metadata.get("chunk_index", i),
-                        "is_augmented_question": True,
-                    },
-                ))
-
-            log.debug(
-                "chunk_augmented",
-                chunk_index=chunk.metadata.get("chunk_index", i),
-                questions_generated=len(questions),
-            )
-
-        except Exception as exc:
-            log.warning(
-                "chunk_augmentation_failed",
-                chunk_index=chunk.metadata.get("chunk_index", i),
-                error=str(exc),
-            )
-            # Continúa sin augmentar este chunk — no bloquea la ingestión
+    # Dividir todos los chunks en lotes de tamaño batch_size
+    batches = [
+        list(enumerate(chunks))[i : i + batch_size]
+        for i in range(0, len(chunks), batch_size)
+    ]
 
     log.info(
-        "document_augmentation_complete",
-        original_chunks=len(chunks),
-        total_documents=len(augmented),
-        questions_added=len(augmented) - len(chunks),
+        "sync_batch_augmentation_start",
+        chunks=len(chunks),
+        batch_size=batch_size,
+        total_batches=len(batches),
     )
+
+    for batch_idx, batch in enumerate(batches):
+        try:
+            results_dict = _generate_questions_batch(batch, llm, questions_per_chunk)
+            # Procesar el resultado procesado
+            for local_idx, (global_idx, chunk) in enumerate(batch):
+                questions = results_dict.get(local_idx, [])
+                for q_text in questions:
+                    augmented.append(Document(
+                        page_content=q_text,
+                        metadata={
+                            **chunk.metadata,
+                            "augmentation_type": "question",
+                            "parent_chunk_index": chunk.metadata.get("chunk_index", global_idx),
+                            "is_augmented_question": True,
+                        },
+                    ))
+            
+            log.debug("sync_batch_processed", batch=batch_idx+1, total=len(batches))
+            
+        except Exception as exc:
+            log.warning(
+                "batch_augmentation_failed",
+                batch=batch_idx,
+                error=str(exc),
+            )
 
     return augmented
 
@@ -120,69 +114,60 @@ async def augment_documents_async(
     chunks: list[Document],
     llm=None,
     questions_per_chunk: int = 3,
+    batch_size: int = 5,
     max_concurrency: int = 5,
 ) -> list[Document]:
     """
-    Augmenta cada chunk con preguntas generadas por LLM — versión async.
-
-    Usa asyncio.gather con semáforo para procesar chunks en paralelo
-    sin saturar el LLM. Para 400 chunks con max_concurrency=5:
-    ~80 batches de 5 llamadas simultáneas vs 400 llamadas secuenciales.
-
-    Args:
-        chunks: Lista de documentos chunkeados.
-        llm: LLM instance. None = usa el default.
-        questions_per_chunk: Número de preguntas por chunk (3-5 recomendado).
-        max_concurrency: Máximas llamadas LLM simultáneas (default 5).
-
-    Returns:
-        Lista original de chunks + documentos de preguntas augmentadas.
+    Augmenta cada chunk usando Batching Asíncrono hiper-optimiado.
+    
+    Toma los chunks en lotes de `batch_size` e invoca hasta `max_concurrency` 
+    lotes al mismo tiempo usando un semáforo.
     """
-    llm = llm or get_llm(temperature=0.5)
+    llm = llm or get_llm(temperature=0.3)
     semaphore = asyncio.Semaphore(max_concurrency)
 
+    batches = [
+        list(enumerate(chunks))[i : i + batch_size]
+        for i in range(0, len(chunks), batch_size)
+    ]
+
     log.info(
-        "async_augmentation_start",
+        "async_batch_augmentation_start",
         chunks=len(chunks),
+        batch_size=batch_size,
         max_concurrency=max_concurrency,
-        estimated_batches=len(chunks) // max_concurrency + 1,
+        total_batches=len(batches),
     )
 
-    async def _augment_one_chunk(chunk: Document, index: int) -> list[Document]:
-        """Augmenta un solo chunk con semáforo."""
+    async def _augment_one_batch(batch: list[tuple[int, Document]], b_idx: int) -> list[Document]:
         async with semaphore:
             try:
-                questions = await _generate_questions_async(
-                    chunk, llm, questions_per_chunk
-                )
-                return [
-                    Document(
-                        page_content=q_text,
-                        metadata={
-                            **chunk.metadata,
-                            "augmentation_type": "question",
-                            "parent_chunk_index": chunk.metadata.get("chunk_index", index),
-                            "is_augmented_question": True,
-                        },
-                    )
-                    for q_text in questions
-                ]
+                results_dict = await _generate_questions_batch_async(batch, llm, questions_per_chunk)
+                batch_docs = []
+                for local_idx, (global_idx, chunk) in enumerate(batch):
+                    questions = results_dict.get(local_idx, [])
+                    for q_text in questions:
+                        batch_docs.append(Document(
+                            page_content=q_text,
+                            metadata={
+                                **chunk.metadata,
+                                "augmentation_type": "question",
+                                "parent_chunk_index": chunk.metadata.get("chunk_index", global_idx),
+                                "is_augmented_question": True,
+                            },
+                        ))
+                return batch_docs
             except Exception as exc:
                 log.warning(
-                    "async_chunk_augmentation_failed",
-                    chunk_index=chunk.metadata.get("chunk_index", index),
+                    "async_batch_augmentation_failed",
+                    batch_idx=b_idx,
                     error=str(exc),
                 )
                 return []
 
-    # Ejecutar todas las augmentaciones en paralelo con semáforo
-    tasks = [
-        _augment_one_chunk(chunk, i)
-        for i, chunk in enumerate(chunks)
-    ]
+    tasks = [_augment_one_batch(batch, b_idx) for b_idx, batch in enumerate(batches)]
     results = await asyncio.gather(*tasks, return_exceptions=True)
 
-    # Aplanar resultados (cada resultado es una lista de Documents)
     all_questions: list[Document] = []
     for result in results:
         if isinstance(result, Exception):
@@ -202,61 +187,63 @@ async def augment_documents_async(
     return augmented
 
 
-# ─── Helpers síncronos ────────────────────────────────────────────────────────
+# ─── Helpers (Batching Logic) ────────────────────────────────────────────────
 
-def _generate_questions(
-    chunk: Document,
-    llm,
-    n: int,
-) -> list[str]:
-    """Genera N preguntas para un chunk dado."""
-    prompt = (
-        f"Genera {n} preguntas realistas que un usuario podría hacer "
-        f"sobre el siguiente fragmento:\n\n"
-        f"{chunk.page_content[:1500]}\n\n"
-        f"Retorna exactamente {n} preguntas, una por línea."
-    )
+def _build_batch_prompt(batch: list[tuple[int, Document]], n: int) -> str:
+    """Construye el string del prompt agrupando múltiples chunks."""
+    prompt_lines = [
+        f"Genera exactamente {n} preguntas para cada uno de los siguientes {len(batch)} fragmentos."
+    ]
+    for local_idx, (global_idx, chunk) in enumerate(batch):
+        snippet = chunk.page_content[:1500].replace('\n', ' ')
+        prompt_lines.append(f"\n[CHUNK {local_idx}]\n{snippet}")
+        
+    return "\n".join(prompt_lines)
 
+
+def _parse_batch_response(content: str) -> dict[int, list[str]]:
+    """Convierte el JSON (esperado) del LLM en un diccionario local_idx -> preguntas."""
+    try:
+        raw_json = content.strip()
+        
+        # Extraer JSON si hay texto extra antes/después
+        start = raw_json.find("{")
+        end = raw_json.rfind("}") + 1
+        if start >= 0 and end > start:
+            raw_json = raw_json[start:end]
+
+        data = json.loads(raw_json)
+        results = data.get("results", [])
+        
+        parsed_dict = {}
+        for r in results:
+            c_id = r.get("chunk_id")
+            qs = r.get("questions", [])
+            if c_id is not None:
+                parsed_dict[int(c_id)] = [str(q).strip() for q in qs if str(q).strip()]
+                
+        return parsed_dict
+    except json.JSONDecodeError as exc:
+        log.warning("batch_json_decode_error", content=content[:200], error=str(exc))
+        return {}
+
+
+def _generate_questions_batch(batch: list[tuple[int, Document]], llm, n: int) -> dict[int, list[str]]:
+    prompt = _build_batch_prompt(batch, n)
     response = llm.invoke([
-        QUESTION_GENERATION_PROMPT,
+        BATCH_QUESTION_GENERATION_PROMPT,
         HumanMessage(content=prompt),
     ])
-
-    # Parsear respuestas: una por línea, filtrar vacías
-    questions = [
-        q.strip().lstrip("0123456789.-*? ")
-        for q in response.content.strip().split("\n")
-        if q.strip() and len(q.strip()) > 10
-    ]
-
-    return questions[:n]
+    return _parse_batch_response(response.content)
 
 
-async def _generate_questions_async(
-    chunk: Document,
-    llm,
-    n: int,
-) -> list[str]:
-    """Genera N preguntas para un chunk dado — versión async."""
-    prompt = (
-        f"Genera {n} preguntas realistas que un usuario podría hacer "
-        f"sobre el siguiente fragmento:\n\n"
-        f"{chunk.page_content[:1500]}\n\n"
-        f"Retorna exactamente {n} preguntas, una por línea."
-    )
-
+async def _generate_questions_batch_async(batch: list[tuple[int, Document]], llm, n: int) -> dict[int, list[str]]:
+    prompt = _build_batch_prompt(batch, n)
     response = await llm.ainvoke([
-        QUESTION_GENERATION_PROMPT,
+        BATCH_QUESTION_GENERATION_PROMPT,
         HumanMessage(content=prompt),
     ])
-
-    questions = [
-        q.strip().lstrip("0123456789.-*? ")
-        for q in response.content.strip().split("\n")
-        if q.strip() and len(q.strip()) > 10
-    ]
-
-    return questions[:n]
+    return _parse_batch_response(response.content)
 
 
 # ─── Integración con pipeline de ingestión ───────────────────────────────────
@@ -266,25 +253,14 @@ async def augment_and_index_async(
     vector_store,
     llm=None,
     questions_per_chunk: int = 3,
+    batch_size: int = 5,
     max_concurrency: int = 5,
 ) -> dict[str, int]:
-    """
-    Augmenta chunks async y los indexa en el vector store.
-
-    Args:
-        chunks: Documentos chunkeados originales.
-        vector_store: Chroma VectorStore para indexar.
-        llm: LLM Instance. None = default.
-        questions_per_chunk: Preguntas por chunk.
-        max_concurrency: Máximas llamadas LLM simultáneas.
-
-    Returns:
-        Dict con {"original_chunks": N, "questions_added": M, "total_indexed": T}
-    """
     augmented = await augment_documents_async(
         chunks,
         llm=llm,
         questions_per_chunk=questions_per_chunk,
+        batch_size=batch_size,
         max_concurrency=max_concurrency,
     )
 
@@ -299,31 +275,24 @@ async def augment_and_index_async(
         "total_indexed": len(augmented),
     }
 
+
 def augment_and_index(
     chunks: list[Document],
     vector_store,
     llm=None,
     questions_per_chunk: int = 3,
+    batch_size: int = 5,
 ) -> dict[str, int]:
-    """
-    Augmenta chunks y los indexa en el vector store.
+    augmented = augment_documents(
+        chunks, 
+        llm=llm, 
+        questions_per_chunk=questions_per_chunk, 
+        batch_size=batch_size
+    )
 
-    Args:
-        chunks: Documentos chunkeados originales.
-        vector_store: Chroma VectorStore para indexar.
-        llm: LLM Instance. None = default.
-        questions_per_chunk: Preguntas por chunk.
-
-    Returns:
-        Dict con {"original_chunks": N, "questions_added": M, "total_indexed": T}
-    """
-    augmented = augment_documents(chunks, llm=llm, questions_per_chunk=questions_per_chunk)
-
-    # Separar originales de augmentados para stats
     originals = [d for d in augmented if not d.metadata.get("is_augmented_question")]
     questions = [d for d in augmented if d.metadata.get("is_augmented_question")]
 
-    # Indexar todo junto
     vector_store.add_documents(augmented)
 
     return {
