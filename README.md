@@ -492,7 +492,7 @@ racodex/
 │   │   ├── tools/                # 12 tools (ingest, search, memory)
 │   │   ├── skills/               # 8 skills + SkillRegistry
 │   │   └── prompts/              # System prompts por rol
-│   ├── ingestion/                # Pipeline de ingestión de documentos
+│   ├── ingestion/                # Pipeline de ingestión (document_type propagation, batching LLM)
 │   ├── retrieval/                # 6 estrategias de retrieval + ensemble
 │   ├── persistence/              # PostgreSQL + SQLAlchemy async
 │   ├── api/                      # FastAPI REST API
