@@ -319,7 +319,7 @@ class DocumentClassifierSkill:
         return self._make_plan(
             path, mime,
             loader_type=parsed.get("loader_type", "pymupdf"),
-            cleaner_profile=parsed.get("cleaner_profile", "legal_colombia"),
+            cleaner_profile=parsed.get("cleaner_profile", "default"),
             requires_ocr=bool(parsed.get("requires_ocr", False)),
             document_type=parsed.get("document_type", "decreto"),
             confidence=float(parsed.get("confidence", 0.75)),

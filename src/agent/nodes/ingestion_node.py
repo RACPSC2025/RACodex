@@ -34,7 +34,7 @@ def ingestion_node(state: AgentState) -> dict:
             if not source_path:
                 continue
 
-            result = pipeline.ingest_file(source_path)
+            result = pipeline.ingest_file(plan)
             chunk_count = result.chunk_count if result.success else 0
             total_chunks += chunk_count
 

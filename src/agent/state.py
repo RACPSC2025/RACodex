@@ -41,7 +41,7 @@ class IngestionPlan(TypedDict):
     Define qué loader usar, qué cleaner aplicar y si se necesita OCR.
     """
     loader_type: str            # "pymupdf" | "ocr" | "docling" | "word" | "excel"
-    cleaner_profile: str        # "legal_colombia" | "contract" | "ocr_output" | "default"
+    cleaner_profile: str        # "technical" | "contract" | "ocr_output" | "default"
     requires_ocr: bool
     document_type: str          # "decreto" | "resolución" | "contrato" | "circular" | "excel"
     source_path: str            # path absoluto al archivo
