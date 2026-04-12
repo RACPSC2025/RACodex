@@ -220,7 +220,7 @@ class MetadataExtractor:
         Anthropic y OpenAI para RAG de alta precisión.
 
         Formato:
-          [Fuente: decreto_1072.pdf | Art. 2.2.4.6.1 | Página: 45]
+          [Fuente: documentacion.pdf | Art. 5 | Página: 45]
         """
         parts: list[str] = []
 

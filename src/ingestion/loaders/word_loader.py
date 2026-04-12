@@ -32,7 +32,7 @@ from langchain_core.documents import Document
 from src.config.logging import get_logger
 from src.config.settings import get_settings
 from src.ingestion.base import BaseLoader, IngestionError, LoaderUnavailableError
-from src.ingestion.processors.legal_chunker import LegalChunker, get_legal_chunker
+from src.ingestion.processors.hierarchical_chunker import HierarchicalChunker, get_hierarchical_chunker
 from src.ingestion.processors.text_cleaner import get_cleaner
 
 log = get_logger(__name__)

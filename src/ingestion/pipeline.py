@@ -84,7 +84,7 @@ class IngestionPipeline:
         Args:
             chunk_size: Tamaño de chunk (override de settings).
             chunk_overlap: Overlap entre chunks (override de settings).
-            cleaner_profile: Perfil de limpieza ("default", "legal_colombia", "ocr_output").
+            cleaner_profile: Perfil de limpieza ("default", "technical", "ocr_output").
             collection_name: Nombre de la colección Chroma (override de settings).
             augment_with_questions: Si True, genera preguntas por chunk durante ingestión.
             questions_per_chunk: Número de preguntas por chunk (si augment=True).

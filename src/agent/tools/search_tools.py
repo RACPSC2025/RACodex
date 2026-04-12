@@ -32,7 +32,7 @@ def semantic_search(query: str, top_k: int = 5, source_filter: str = "") -> dict
     Args:
         query: Texto de la pregunta o tema a buscar.
         top_k: Número de documentos a retornar (1-20).
-        source_filter: Filtrar por nombre de archivo (ej: "decreto_1072.pdf").
+        source_filter: Filtrar por nombre de archivo (ej: "documentacion.pdf").
 
     Returns:
         Dict con {results: [{content, source, article, page, score}], total}.
@@ -136,7 +136,7 @@ def article_lookup(article_number: str, source_filter: str = "") -> dict:
 
     Args:
         article_number: Número del artículo (ej: "2.2.4.6.1", "15", "ÚNICO").
-        source_filter: Filtrar por nombre de archivo (ej: "decreto_1072.pdf").
+        source_filter: Filtrar por nombre de archivo (ej: "documentacion.pdf").
 
     Returns:
         Dict con {found, article_number, content, source, page}.
