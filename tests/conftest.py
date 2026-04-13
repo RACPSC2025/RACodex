@@ -79,6 +79,41 @@ def clear_provider_cache() -> Generator[None, None, None]:
         yield
 
 
+# ─── Auto-mock de LLM para tests de agente ──────────────────────────────────
+
+@pytest.fixture(autouse=True)
+def mock_get_llm(monkeypatch):
+    """
+    Mock global de get_llm para todos los tests de agent/.
+
+    Retorna un MagicMock cuyo .invoke() devuelve un objeto con .content = "".
+    Tests que necesitan comportamiento específico sobreescriben con @patch local.
+
+    Propósito:
+      Evitar llamadas reales a AWS Bedrock/ChatBedrock en toda la suite agent/.
+      Los tests que necesitan comportamiento específico del LLM pueden
+      sobreescribir el mock localmente con @patch en el test mismo.
+    """
+    from unittest.mock import MagicMock
+
+    mock_llm = MagicMock()
+    mock_llm.invoke.return_value = MagicMock(content="mock response")
+    mock_llm.with_structured_output.return_value = MagicMock(
+        invoke=MagicMock(return_value=MagicMock(
+            quality="correct", score=0.85, reasoning="mock"
+        ))
+    )
+
+    # Parchea todas las rutas donde get_llm es importado directamente
+    monkeypatch.setattr("src.agent.skills.crag.get_llm", lambda **kw: mock_llm)
+    monkeypatch.setattr("src.agent.skills.rethinking.get_llm", lambda **kw: mock_llm)
+    monkeypatch.setattr("src.agent.skills.query_transformer.get_llm", lambda **kw: mock_llm)
+    monkeypatch.setattr("src.agent.skills.answer_validator.get_llm", lambda **kw: mock_llm)
+    monkeypatch.setattr("src.config.providers.get_llm", lambda **kw: mock_llm)
+
+    return mock_llm
+
+
 # ─── Fixtures de documentos ───────────────────────────────────────────────────
 
 @pytest.fixture
