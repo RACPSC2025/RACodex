@@ -188,8 +188,8 @@ class TestGenerationNodeSkillPack:
             "pipeline_metrics": {},
         }
 
-    @patch("src.agent.nodes.generation_node.get_skill_registry")
-    @patch("src.agent.nodes.generation_node.generate_direct")
+    @patch("src.agent.skills.registry.get_skill_registry")
+    @patch("src.agent.skills.rethinking.generate_direct")
     def test_skill_pack_injected_when_profile_active(
         self, mock_generate, mock_registry
     ):
@@ -212,8 +212,8 @@ class TestGenerationNodeSkillPack:
         assert isinstance(call_kwargs["extra_system"], SystemMessage)
         assert "General Dev Pack" in call_kwargs["extra_system"].content
 
-    @patch("src.agent.nodes.generation_node.get_skill_registry")
-    @patch("src.agent.nodes.generation_node.generate_direct")
+    @patch("src.agent.skills.registry.get_skill_registry")
+    @patch("src.agent.skills.rethinking.generate_direct")
     def test_graceful_degradation_when_pack_empty(
         self, mock_generate, mock_registry
     ):
@@ -233,8 +233,8 @@ class TestGenerationNodeSkillPack:
         call_kwargs = mock_generate.call_args[1]
         assert call_kwargs["extra_system"] is None
 
-    @patch("src.agent.nodes.generation_node.get_skill_registry")
-    @patch("src.agent.nodes.generation_node.generate_direct")
+    @patch("src.agent.skills.registry.get_skill_registry")
+    @patch("src.agent.skills.rethinking.generate_direct")
     def test_active_profile_written_to_state(self, mock_generate, mock_registry):
         """El nombre del perfil resuelto debe escribirse al estado."""
         from src.agent.nodes.generation_node import generation_node
@@ -251,8 +251,8 @@ class TestGenerationNodeSkillPack:
 
         assert result["active_profile"] == "ai-rag-engineer"
 
-    @patch("src.agent.nodes.generation_node.get_skill_registry")
-    @patch("src.agent.nodes.generation_node.generate_direct")
+    @patch("src.agent.skills.registry.get_skill_registry")
+    @patch("src.agent.skills.rethinking.generate_direct")
     def test_uses_registry_default_when_active_profile_empty(
         self, mock_generate, mock_registry
     ):
@@ -271,8 +271,8 @@ class TestGenerationNodeSkillPack:
 
         mock_reg_instance.load_pack.assert_called_with("general-dev")
 
-    @patch("src.agent.nodes.generation_node.get_skill_registry")
-    @patch("src.agent.nodes.generation_node.generate_with_rethinking")
+    @patch("src.agent.skills.registry.get_skill_registry")
+    @patch("src.agent.skills.rethinking.generate_with_rethinking")
     def test_re2_selected_for_mid_grade_score(self, mock_rethinking, mock_registry):
         """grade_score 0.5-0.8 → generate_with_rethinking (Re2)."""
         from src.agent.nodes.generation_node import generation_node
@@ -290,7 +290,7 @@ class TestGenerationNodeSkillPack:
         mock_rethinking.assert_called_once()
         assert result["generation_mode"] == "rethinking"
 
-    @patch("src.agent.nodes.generation_node.get_skill_registry")
+    @patch("src.agent.skills.registry.get_skill_registry")
     def test_no_docs_returns_early_without_llm_call(self, mock_registry):
         """Sin documentos, retorna inmediatamente sin llamar al LLM."""
         from src.agent.nodes.generation_node import generation_node
@@ -321,7 +321,7 @@ class TestGenerationNodeSkillPack:
 
 class TestLoadSkillTool:
 
-    @patch("src.agent.tools.skill_tools.get_skill_registry")
+    @patch("src.agent.skills.registry.get_skill_registry")
     def test_load_skill_found(self, mock_registry):
         from src.agent.tools.skill_tools import load_skill
 
@@ -340,7 +340,7 @@ class TestLoadSkillTool:
         assert "Patrones de CRAG" in result["content"]
         assert result["size_chars"] > 0
 
-    @patch("src.agent.tools.skill_tools.get_skill_registry")
+    @patch("src.agent.skills.registry.get_skill_registry")
     def test_load_skill_not_found(self, mock_registry):
         from src.agent.tools.skill_tools import load_skill
 
@@ -357,7 +357,7 @@ class TestLoadSkillTool:
         assert result["content"] == ""
         assert "hint" in result
 
-    @patch("src.agent.tools.skill_tools.get_skill_registry")
+    @patch("src.agent.skills.registry.get_skill_registry")
     def test_load_skill_graceful_on_exception(self, mock_registry):
         from src.agent.tools.skill_tools import load_skill
 
@@ -378,7 +378,7 @@ class TestLoadSkillTool:
 
 class TestSearchSkillsTool:
 
-    @patch("src.agent.tools.skill_tools.get_skill_registry")
+    @patch("src.agent.skills.registry.get_skill_registry")
     def test_search_skills_returns_matches(self, mock_registry):
         from src.agent.tools.skill_tools import search_skills
 
@@ -399,7 +399,7 @@ class TestSearchSkillsTool:
         assert "Rag_Mastery/stage7-memory.md" in result["matches"]
         assert "hint" in result
 
-    @patch("src.agent.tools.skill_tools.get_skill_registry")
+    @patch("src.agent.skills.registry.get_skill_registry")
     def test_search_skills_no_matches(self, mock_registry):
         from src.agent.tools.skill_tools import search_skills
 
@@ -417,7 +417,7 @@ class TestSearchSkillsTool:
         assert result["matches"] == []
         assert "hint" in result
 
-    @patch("src.agent.tools.skill_tools.get_skill_registry")
+    @patch("src.agent.skills.registry.get_skill_registry")
     def test_search_skills_graceful_on_exception(self, mock_registry):
         from src.agent.tools.skill_tools import search_skills
 
@@ -434,7 +434,7 @@ class TestSearchSkillsTool:
 
 class TestListAvailableProfilesTool:
 
-    @patch("src.agent.tools.skill_tools.get_skill_registry")
+    @patch("src.agent.skills.registry.get_skill_registry")
     def test_lists_all_profiles(self, mock_registry):
         from src.agent.tools.skill_tools import list_available_profiles
 
@@ -451,7 +451,7 @@ class TestListAvailableProfilesTool:
         assert "ai-rag-engineer" in result["profiles"]
         assert result["default_profile"] == "general-dev"
 
-    @patch("src.agent.tools.skill_tools.get_skill_registry")
+    @patch("src.agent.skills.registry.get_skill_registry")
     def test_graceful_on_exception(self, mock_registry):
         from src.agent.tools.skill_tools import list_available_profiles
 

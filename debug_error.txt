@@ -1,0 +1,154 @@
+﻿============================= test session starts =============================
+platform win32 -- Python 3.12.4, pytest-9.0.3, pluggy-1.6.0 -- C:\Users\DELL\Desktop\RAG\.venv\Scripts\python.exe
+cachedir: .pytest_cache
+rootdir: C:\Users\DELL\Desktop\RAG
+configfile: pyproject.toml
+plugins: anyio-4.13.0, Faker-40.13.0, langsmith-0.7.30, asyncio-1.3.0, cov-7.1.0
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 25 items / 24 deselected / 1 selected
+
+tests/unit/agent/test_phase10.py::TestGenerationNodeSkillPack::test_skill_pack_injected_when_profile_active ERROR [100%]
+ERROR: Coverage failure: total of 0 is less than fail-under=75
+
+
+=================================== ERRORS ====================================
+_ ERROR at setup of TestGenerationNodeSkillPack.test_skill_pack_injected_when_profile_active _
+
+fixturedef = <FixtureDef argname='clear_settings_cache' scope='function' baseid='tests'>
+request = <SubRequest 'clear_settings_cache' for <Function test_skill_pack_injected_when_profile_active>>
+
+    @pytest.hookimpl(wrapper=True)
+    def pytest_fixture_setup(fixturedef: FixtureDef, request) -> object | None:
+        asyncio_mode = _get_asyncio_mode(request.config)
+        if not _is_asyncio_fixture_function(fixturedef.func):
+            if asyncio_mode == Mode.STRICT:
+                # Ignore async fixtures without explicit asyncio mark in strict mode
+                # This applies to pytest_trio fixtures, for example
+                return (yield)
+            if not _is_coroutine_or_asyncgen(fixturedef.func):
+>               return (yield)
+                        ^^^^^
+
+.venv\Lib\site-packages\pytest_asyncio\plugin.py:730: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    @pytest.fixture(autouse=True)
+    def clear_settings_cache() -> Generator[None, None, None]:
+        """
+        Limpia el cachÚ de settings antes de cada test.
+    
+        Garantiza que cada test empiece con settings frescas
+        y no haya estado compartido entre tests.
+        """
+>       from src.config.settings import get_settings
+E       ModuleNotFoundError: No module named 'src'
+
+tests\conftest.py:64: ModuleNotFoundError
+=============================== tests coverage ================================
+_______________ coverage: platform win32, python 3.12.4-final-0 _______________
+
+Name                                                Stmts   Miss  Cover   Missing
+---------------------------------------------------------------------------------
+src\__init__.py                                         1      1     0%   3
+src\agent\__init__.py                                   0      0   100%
+src\agent\graph.py                                    110    110     0%   60-426
+src\agent\metrics.py                                   48     48     0%   17-123
+src\agent\middleware\__init__.py                        0      0   100%
+src\agent\middleware\context_window_manager.py         81     81     0%   38-354
+src\agent\nodes\__init__.py                            14     14     0%   14-47
+src\agent\nodes\all_nodes.py                            8      8     0%   8-17
+src\agent\nodes\document_router.py                     18     18     0%   5-39
+src\agent\nodes\generation_node.py                     49     49     0%   31-169
+src\agent\nodes\ingestion_node.py                      27     27     0%   5-69
+src\agent\nodes\reflection_node.py                     26     26     0%   14-100
+src\agent\nodes\retrieval_node.py                      36     36     0%   12-102
+src\agent\nodes\supervisor_node.py                      6      6     0%   5-19
+src\agent\prompts\__init__.py                           2      2     0%   3-13
+src\agent\prompts\legal_templates.py                    0      0   100%
+src\agent\prompts\reflection.py                         0      0   100%
+src\agent\prompts\system.py                             9      9     0%   17-165
+src\agent\skills\__init__.py                            8      8     0%   3-11
+src\agent\skills\answer_validator.py                   64     64     0%   19-199
+src\agent\skills\crag.py                               59     59     0%   33-257
+src\agent\skills\document_classifier.py               178    178     0%   26-490
+src\agent\skills\query_planner.py                      73     73     0%   27-211
+src\agent\skills\query_transformer.py                  59     59     0%   38-229
+src\agent\skills\registry.py                           90     90     0%   16-200
+src\agent\skills\rethinking.py                         86     86     0%   29-288
+src\agent\skills\semantic_router.py                    57     57     0%   26-203
+src\agent\state.py                                     54     54     0%   35-175
+src\agent\tools\__init__.py                             3      3     0%   3-16
+src\agent\tools\analysis_tools.py                      24     24     0%   8-124
+src\agent\tools\ingest_tools.py                        97     97     0%   18-261
+src\agent\tools\memory_tools.py                        54     54     0%   13-215
+src\agent\tools\search_tools.py                        60     60     0%   15-197
+src\agent\tools\skill_tools.py                         42     42     0%   26-200
+src\api\__init__.py                                     0      0   100%
+src\api\dependencies.py                                32     32     0%   4-65
+src\api\main.py                                        48     48     0%   6-87
+src\api\middleware.py                                  48     48     0%   2-99
+src\api\routes\__init__.py                              0      0   100%
+src\api\routes\admin.py                                28     28     0%   8-130
+src\api\routes\chat.py                                 98     98     0%   9-343
+src\api\routes\documents.py                            61     61     0%   7-209
+src\api\routes\health.py                               51     51     0%   2-91
+src\api\routes\sessions.py                             64     64     0%   8-188
+src\api\schemas.py                                    142    142     0%   16-220
+src\config\__init__.py                                  0      0   100%
+src\config\logging.py                                  25     25     0%   15-131
+src\config\providers.py                                61     61     0%   15-240
+src\config\settings\__init__.py                        26     26     0%   20-81
+src\config\settings\base.py                            96     96     0%   8-175
+src\config\settings\development.py                     13     13     0%   5-42
+src\config\settings\production.py                      14     14     0%   5-43
+src\config\settings\staging.py                         11     11     0%   5-37
+src\config\settings\testing.py                         15     15     0%   5-47
+src\ingestion\__init__.py                               0      0   100%
+src\ingestion\base.py                                  98     98     0%   17-281
+src\ingestion\detectors\__init__.py                     0      0   100%
+src\ingestion\detectors\mime_detector.py               75     75     0%   24-248
+src\ingestion\detectors\quality_detector.py            96     96     0%   17-239
+src\ingestion\loaders\__init__.py                       0      0   100%
+src\ingestion\loaders\docling_loader.py                89     89     0%   25-278
+src\ingestion\loaders\excel_loader.py                 114    114     0%   32-319
+src\ingestion\loaders\pdf_llamaparse.py                 0      0   100%
+src\ingestion\loaders\pdf_ocr.py                      158    158     0%   25-426
+src\ingestion\loaders\pdf_pymupdf.py                   65     65     0%   24-195
+src\ingestion\loaders\word_loader.py                  117    117     0%   24-320
+src\ingestion\pipeline.py                             148    148     0%   24-391
+src\ingestion\processors\__init__.py                    0      0   100%
+src\ingestion\processors\adaptive_chunker.py           62     62     0%   20-244
+src\ingestion\processors\document_augmenter.py        101    101     0%   16-298
+src\ingestion\processors\hierarchical_chunker.py       70     70     0%   20-249
+src\ingestion\processors\metadata_extractor.py        103    103     0%   19-253
+src\ingestion\processors\ocr_preprocessor.py          128    128     0%   20-375
+src\ingestion\processors\text_cleaner.py               45     45     0%   14-219
+src\ingestion\registry.py                              91     91     0%   17-310
+src\mcp\__init__.py                                     0      0   100%
+src\mcp\server.py                                     128    128     0%   22-237
+src\mcp\tools.py                                       63     63     0%   8-214
+src\persistence\__init__.py                             0      0   100%
+src\persistence\database.py                            80     80     0%   23-257
+src\persistence\models.py                             128    128     0%   26-566
+src\persistence\repositories\__init__.py                2      2     0%   19-21
+src\persistence\repositories\chunk_repo.py             21     21     0%   8-73
+src\persistence\repositories\document_repo.py          67     67     0%   24-324
+src\persistence\repositories\query_repo.py             37     37     0%   14-248
+src\persistence\repositories\session_repo.py           67     67     0%   24-324
+src\persistence\repositories\user_profile_repo.py      50     50     0%   21-212
+src\retrieval\__init__.py                               3      3     0%   3-6
+src\retrieval\base.py                                  80     80     0%   17-237
+src\retrieval\bm25_retriever.py                       166    166     0%   32-400
+src\retrieval\context_enricher.py                      96     96     0%   25-300
+src\retrieval\ensemble.py                             156    156     0%   25-362
+src\retrieval\hierarchical_retriever.py               114    114     0%   30-319
+src\retrieval\hybrid_retriever.py                      78     78     0%   24-216
+src\retrieval\parent_child.py                          81     81     0%   27-234
+src\retrieval\reranker.py                              76     76     0%   30-219
+src\retrieval\vector_store.py                         143    143     0%   22-418
+---------------------------------------------------------------------------------
+TOTAL                                                5472   5472     0%
+FAIL Required test coverage of 75% not reached. Total coverage: 0.00%
+=========================== short test summary info ===========================
+ERROR tests/unit/agent/test_phase10.py::TestGenerationNodeSkillPack::test_skill_pack_injected_when_profile_active
+======================= 24 deselected, 1 error in 1.70s =======================

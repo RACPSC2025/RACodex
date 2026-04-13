@@ -125,6 +125,11 @@ class Session(TimestampMixin, Base):
         back_populates="session",
         lazy="select",
     )
+    reflection_logs: Mapped[list["ReflectionLog"]] = relationship(
+        "ReflectionLog",
+        back_populates="session",
+        lazy="select",
+    )
 
     __table_args__ = (
         Index("ix_sessions_user_active", "user_identifier", "is_active"),

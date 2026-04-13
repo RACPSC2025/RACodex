@@ -108,7 +108,6 @@ def mock_get_llm(monkeypatch):
     monkeypatch.setattr("src.agent.skills.crag.get_llm", lambda **kw: mock_llm)
     monkeypatch.setattr("src.agent.skills.rethinking.get_llm", lambda **kw: mock_llm)
     monkeypatch.setattr("src.agent.skills.query_transformer.get_llm", lambda **kw: mock_llm)
-    monkeypatch.setattr("src.agent.skills.answer_validator.get_llm", lambda **kw: mock_llm)
     monkeypatch.setattr("src.config.providers.get_llm", lambda **kw: mock_llm)
 
     return mock_llm
