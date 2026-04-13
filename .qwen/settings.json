@@ -9,7 +9,8 @@
       "Bash(r *)",
       "Bash(mkdir *)",
       "Bash(move *)",
-      "Bash(copy *)"
+      "Bash(copy *)",
+      "Bash(dir *)"
     ]
   },
   "$version": 3
